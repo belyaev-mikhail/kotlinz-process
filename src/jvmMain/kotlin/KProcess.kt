@@ -78,6 +78,12 @@ fun <O, E> KProcessBuilder<Pipe, O, E>.input(ip: Pipe) {
 
 @OptIn(ExperimentalTypeInference::class)
 @BuilderInference
+fun <O, E> KProcessBuilder<Tee, O, E>.input(ip: Tee) {
+    setInput(ip, ip.pipe())
+}
+
+@OptIn(ExperimentalTypeInference::class)
+@BuilderInference
 fun <O, E> KProcessBuilder<InputHandler.Interactive, O, E>.input(ip: InputHandler.Interactive) {
     setInput(ip, ip)
 }
@@ -125,7 +131,7 @@ fun <I, E> KProcessBuilder<I, OutputHandler.None, E>.output(op: OutputHandler.No
 @OptIn(ExperimentalTypeInference::class)
 @BuilderInference
 fun <I, E> KProcessBuilder<I, Pipe, E>.output(op: Pipe) {
-    setOutput(op, op)
+    setOutput(op, op.newOutput())
 }
 
 @OptIn(ExperimentalTypeInference::class)
@@ -177,7 +183,7 @@ fun <I, O> KProcessBuilder<I, O, OutputHandler.None>.errors(op: OutputHandler.No
 @OptIn(ExperimentalTypeInference::class)
 @BuilderInference
 fun <I, O> KProcessBuilder<I, O, Pipe>.errors(op: Pipe) {
-    setError(op, op)
+    setError(op, op.newOutput())
 }
 
 @OptIn(ExperimentalTypeInference::class)

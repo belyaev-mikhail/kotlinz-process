@@ -9,7 +9,7 @@ class ProcessTest {
     @Test
     fun basicTest() {
         runBlocking {
-            println(exec("ping", "ya.ru", outputHandler = OutputHandler.of(System.out)))
+            println(exec("ping", "ya.ru", "-c", "16", outputHandler = OutputHandler.of(System.out)))
         }
     }
 
@@ -17,7 +17,7 @@ class ProcessTest {
     fun pipeTest() {
         runBlocking {
             val pipe = Pipe()
-            val ping = execDeferred("ping", "ya.ru", "-c", "16", outputHandler = pipe)
+            val ping = execDeferred("ping", "ya.ru", "-c", "16", outputHandler = pipe.newOutput())
             val grep = execDeferred("grep", "14", "--line-buffered", inputHandler = pipe, outputHandler = OutputHandler.of(System.out))
             listOf(ping, grep).awaitAll()
         }

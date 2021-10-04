@@ -4,9 +4,28 @@ import com.zaxxer.nuprocess.NuProcess
 import java.nio.BufferOverflowException
 import java.nio.ByteBuffer
 
-class Pipe: InputHandler, OutputHandler {
+abstract class OutputMultiplexer {
+    private inner class OHandler: OutputHandler {
+        var isClosed: Boolean = false
+        override fun onOutput(src: ByteBuffer, closed: Boolean) {
+            if (closed) isClosed = true
+            this@OutputMultiplexer.onOutput(src)
+        }
+    }
+    private val outputHandlers: MutableList<OHandler> = mutableListOf()
+
+    @Synchronized
+    fun newOutput(): OutputHandler = OHandler().also { outputHandlers += it }
+
+    val outputClosed: Boolean
+        @Synchronized
+        get() = outputHandlers.all { it.isClosed }
+
+    abstract fun onOutput(src: ByteBuffer)
+}
+
+class Pipe: InputHandler, OutputMultiplexer() {
     private var inputProcess: NuProcess? = null
-    private var outputClosed: Boolean = false
     private var buffer = ByteBuffer.allocateDirect(NuProcess.BUFFER_CAPACITY).flip()
 
     @Synchronized
@@ -16,7 +35,7 @@ class Pipe: InputHandler, OutputHandler {
     }
 
     @Synchronized
-    override fun onOutput(src: ByteBuffer, closed: Boolean) {
+    override fun onOutput(src: ByteBuffer) {
         buffer.compact()
         while (true) {
             try {
@@ -31,7 +50,6 @@ class Pipe: InputHandler, OutputHandler {
         }
         buffer.flip()
         inputProcess?.wantWrite()
-        outputClosed = closed
     }
 
     @Synchronized
@@ -48,4 +66,25 @@ class Pipe: InputHandler, OutputHandler {
     }
 
 
+}
+
+class Tee: OutputMultiplexer() {
+    private val pipes: MutableList<OutputHandler> = mutableListOf()
+
+    fun pipe(): InputHandler {
+        val pipe = Pipe()
+        pipes.add(pipe.newOutput())
+        return pipe
+    }
+
+    fun addOutputHandler(oh: OutputHandler): OutputHandler {
+        pipes.add(oh)
+        return oh
+    }
+
+    override fun onOutput(src: ByteBuffer) {
+        for (pipe in pipes) {
+            pipe.onOutput(src.duplicate(), outputClosed)
+        }
+    }
 }
