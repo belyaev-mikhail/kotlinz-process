@@ -13,8 +13,6 @@ abstract class OutputMultiplexer {
         }
     }
     private val outputHandlers: MutableList<OHandler> = mutableListOf()
-
-    @Synchronized
     fun newOutput(): OutputHandler = OHandler().also { outputHandlers += it }
 
     val outputClosed: Boolean
@@ -82,6 +80,7 @@ class Tee: OutputMultiplexer() {
         return oh
     }
 
+    @Synchronized
     override fun onOutput(src: ByteBuffer) {
         for (pipe in pipes) {
             pipe.onOutput(src.duplicate(), outputClosed)
