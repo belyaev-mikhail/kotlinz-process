@@ -6,33 +6,8 @@ import org.junit.Test
 import java.io.File
 import kotlin.test.assertEquals
 
-class ProcessTest {
-    @Test
-    fun basicTest() {
-        runBlocking {
-            println(exec("ping", "ya.ru", "-c", "16", outputHandler = OutputHandler.of(System.out)))
-        }
-    }
-
-    @Test
-    fun pipeTest() {
-        runBlocking {
-            val pipe = Pipe()
-            val ping = execDeferred("ping", "ya.ru", "-c", "16", outputHandler = pipe.newOutput())
-            val grep = execDeferred("grep", "14", "--line-buffered", inputHandler = pipe, outputHandler = OutputHandler.of(System.out))
-            listOf(ping, grep).awaitAll()
-        }
-    }
-
-    @Test
-    fun dslTest() {
-        runBlocking {
-
-            val textRes = StringBuilder()
-
-            val ioRes = execute {
-                commandLine += listOf("grep", "If", "--line-buffered")
-                input("""
+// If, by Rudyard Kipling
+const val ifThePoem = """
 If you can keep your head when all about you
     Are losing theirs and blaming it on you,
 If you can trust yourself when all men doubt you,
@@ -68,7 +43,39 @@ If you can fill the unforgiving minute
     With sixty seconds’ worth of distance run,
 Yours is the Earth and everything that’s in it,
     And—which is more—you’ll be a Man, my son!
-                """)
+"""
+
+private fun String.grep(predicate: (line: String) -> Boolean) = lines().filter(predicate).joinToString("\n")
+
+class ProcessTest {
+    @Test
+    fun basicTest() {
+        runBlocking {
+            println(exec("ping", "ya.ru", "-c", "16", outputHandler = OutputHandler.of(System.out)))
+        }
+    }
+
+    @Test
+    fun pipeTest() {
+        runBlocking {
+            val pipe = Pipe()
+            val ping = execDeferred("ping", "ya.ru", "-c", "16", outputHandler = pipe.newOutput())
+            val grep = execDeferred("grep", "14", "--line-buffered", inputHandler = pipe, outputHandler = OutputHandler.of(System.out))
+            listOf(ping, grep).awaitAll()
+        }
+    }
+
+    @Test
+    fun dslTest() {
+        val ifButOnlyIfLines = ifThePoem.grep { "If" in it }
+
+        runBlocking {
+
+            val textRes = StringBuilder()
+
+            val ioRes = execute {
+                commandLine += listOf("grep", "If", "--line-buffered")
+                input(ifThePoem)
 
                 output(textRes)
                 errors(null)
@@ -76,22 +83,54 @@ Yours is the Earth and everything that’s in it,
 
             ioRes.await()
 
-            assertEquals("""
-If you can keep your head when all about you
-If you can trust yourself when all men doubt you,
-If you can wait and not be tired by waiting,
-If you can dream—and not make dreams your master;
-    If you can think—and not make thoughts your aim;
-If you can meet with Triumph and Disaster
-If you can bear to hear the truth you’ve spoken
-If you can make one heap of all your winnings
-If you can force your heart and nerve and sinew
-If you can talk with crowds and keep your virtue,
-If neither foes nor loving friends can hurt you,
-    If all men count with you, but none too much;
-If you can fill the unforgiving minute
-                """.trim(), ioRes.output.trim())
+            assertEquals(ifButOnlyIfLines, ioRes.output.trim())
+        }
+
+        runBlocking {
+
+            val iFile = File.createTempFile("input", "txt")
+            iFile.writeText(ifThePoem, Charsets.UTF_8)
+            val oFile = File.createTempFile("output", "txt")
+
+            val ioRes = execute {
+                commandLine += listOf("grep", "If", "--line-buffered")
+                input(iFile)
+
+                output(oFile)
+                errors(null)
+            }
+
+            ioRes.await()
+
+            assertEquals(ifButOnlyIfLines.trim(), oFile.readText(Charsets.UTF_8).trim())
+        }
+
+        runBlocking {
+            val oFile = File.createTempFile("output", "txt")
+            val ifButOnlyAboutYourStuff = ifButOnlyIfLines.grep { "your" in it }
+
+            val pipe = Pipe()
+
+            val grep1 = execute {
+                commandLine += listOf("grep", "If", "--line-buffered")
+                input(ifThePoem)
+
+                output(pipe)
+                errors(null)
+            }
+
+            val grep2 = execute {
+                commandLine += listOf("grep", "your", "--line-buffered")
+
+                input(pipe)
+                output(oFile.outputStream())
+                errors(null)
+            }
+
+            listOf(grep1, grep2).awaitAll()
+
+            assertEquals(ifButOnlyAboutYourStuff.trim(), oFile.readText(Charsets.UTF_8).trim())
         }
     }
-
 }
+
