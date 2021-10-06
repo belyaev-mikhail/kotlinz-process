@@ -1,5 +1,6 @@
 package ru.spbstu
 
+import com.zaxxer.nuprocess.NuProcess
 import com.zaxxer.nuprocess.NuProcessBuilder
 import kotlinx.coroutines.Deferred
 import java.io.*
@@ -9,12 +10,20 @@ import java.nio.channels.ReadableByteChannel
 import java.nio.channels.WritableByteChannel
 import kotlin.experimental.ExperimentalTypeInference
 
+interface KProcess {
+    fun wantWrite()
+    fun closeStdin(force: Boolean)
+}
+
+internal class KNuProcess(nuProcess: NuProcess): NuProcess by nuProcess, KProcess {
+    override fun toString(): String = "process#$pid"
+}
+
 interface KProcessIO<I, O, E>: Deferred<Int> {
     val input: I
     val output: O
     val errors: E
 }
-
 
 class KProcessBuilder<I, O, E> {
     val commandLine: MutableList<String> = mutableListOf()

@@ -12,7 +12,7 @@ import java.nio.channels.ReadableByteChannel
 import java.nio.charset.CodingErrorAction
 
 fun interface InputHandler {
-    fun onStartInput(process: NuProcess) {
+    fun onStartInput(process: KProcess) {
         process.wantWrite()
     }
 
@@ -21,15 +21,15 @@ fun interface InputHandler {
     fun onInput(buffer: ByteBuffer): InputResult
 
     object None: InputHandler {
-        override fun onStartInput(process: NuProcess) {}
+        override fun onStartInput(process: KProcess) {}
         override fun onInput(buffer: ByteBuffer): InputResult = InputResult.FINISHED
     }
 
     class Interactive: InputHandler, Appendable, Closeable {
         val encoder = Charsets.UTF_8.newEncoder()
 
-        var process: NuProcess? = null
-        override fun onStartInput(process: NuProcess) {
+        var process: KProcess? = null
+        override fun onStartInput(process: KProcess) {
             this.process = process
         }
         val buffer: ByteBuffer = ByteBuffer.allocateDirect(NuProcess.BUFFER_CAPACITY)

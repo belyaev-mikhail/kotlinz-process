@@ -29,22 +29,22 @@ class ProcessHandler(
     val errorHandler: OutputHandler = OutputHandler.None,
     val inputHandler: InputHandler = InputHandler.None
 ): NuProcessHandler {
-    lateinit var process: NuProcess
+    private lateinit var process: KNuProcess
     private val exitCodeDeferred: CompletableDeferred<Int> = CompletableDeferred()
     val exitCode: Deferred<Int> get() = exitCodeDeferred
     private val runnerDeferred: CompletableDeferred<Unit> = CompletableDeferred()
 
     override fun onStart(nuProcess: NuProcess) {
-        inputHandler.onStartInput(nuProcess)
-        outputHandler.onStartOutput(nuProcess)
-        errorHandler.onStartOutput(nuProcess)
+        inputHandler.onStartInput(process)
+        outputHandler.onStartOutput(process)
+        errorHandler.onStartOutput(process)
         runnerDeferred.complete(Unit)
     }
 
     suspend fun awaitStart() = runnerDeferred.await()
 
     override fun onPreStart(nuProcess: NuProcess) {
-        process = nuProcess
+        process = KNuProcess(nuProcess)
     }
 
     override fun onExit(exitCode: Int) {

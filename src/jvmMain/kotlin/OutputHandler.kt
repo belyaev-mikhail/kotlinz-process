@@ -11,7 +11,7 @@ import java.nio.channels.Channels
 import java.nio.channels.WritableByteChannel
 
 fun interface OutputHandler {
-    fun onStartOutput(process: NuProcess) {}
+    fun onStartOutput(process: KProcess) {}
     fun onOutput(buffer: ByteBuffer, closed: Boolean)
 
     object None: OutputHandler {

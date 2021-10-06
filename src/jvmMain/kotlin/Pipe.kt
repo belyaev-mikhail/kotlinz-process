@@ -23,11 +23,11 @@ abstract class OutputMultiplexer {
 }
 
 class Pipe: InputHandler, OutputMultiplexer() {
-    private var inputProcess: NuProcess? = null
+    private var inputProcess: KProcess? = null
     private var buffer = ByteBuffer.allocateDirect(NuProcess.BUFFER_CAPACITY).flip()
 
     @Synchronized
-    override fun onStartInput(process: NuProcess) {
+    override fun onStartInput(process: KProcess) {
         inputProcess = process
         if (buffer.hasRemaining()) inputProcess?.wantWrite()
     }
